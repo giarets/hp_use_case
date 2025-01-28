@@ -46,3 +46,37 @@ def plot_real_vs_predicted(df, sku, full_history=False):
 
     plt.tight_layout()
     plt.show()
+
+
+def plot_time_series_split_with_dates(ts_splitter, df):
+    """
+    Visualize the training and testing indices for a time series dataset.
+
+    Parameters:
+    - ts_splitter: Cross-validator (e.g., TimeSeriesSplit)
+    - df: Dataset with a datetime index
+    """
+    fig, ax = plt.subplots(figsize=(12, ts_splitter.n_splits + 2))
+    colors = {"training": "blue", "testing": "orange"}
+
+    df = df[~df.index.duplicated(keep="first")]
+    dates = df.index
+    
+    for split_idx, (train_idx, test_idx) in enumerate(ts_splitter.split(df)):
+        # Scatter training indices
+        ax.scatter(dates[train_idx], [split_idx] * len(train_idx),
+                   c=colors["training"], label="Training" if split_idx == 0 else "")
+        # Scatter testing indices
+        ax.scatter(dates[test_idx], [split_idx] * len(test_idx),
+                   c=colors["testing"], label="Testing" if split_idx == 0 else "")
+    
+    ax.legend(loc="upper left")
+    ax.set_title("Time Series Split Visualization")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("")
+    ax.set_yticks(range(ts_splitter.n_splits))
+    ax.set_yticklabels([f"Split {i+1}" for i in range(ts_splitter.n_splits)])
+    plt.xticks(rotation=45)
+    plt.figure(figsize=(14, 2))
+    plt.tight_layout()
+    plt.show()
