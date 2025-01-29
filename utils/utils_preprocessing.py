@@ -2,10 +2,40 @@ import pandas as pd
 import utils
 
 
-def preprocess_columns(df):
+def preprocess_columns(df, bottom_up=True):
 
-    # Define sku = reporterhq_id + product_number
-    df["sku"] = df["reporterhq_id"].astype(str) + "_" + df["product_number"].astype(str)
+    if bottom_up:
+        # Define sku = reporterhq_id + product_number
+        df["sku"] = df["reporterhq_id"].astype(str) + "_" + df["product_number"].astype(str)
+
+    # Format columns
+    df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d", errors="coerce")
+    numeric_cols = [x for x in df.columns if 'units' in x]
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # Convert to categorical
+    categorical_columns = [
+        "id",
+        "product_number",
+        "prod_category",
+        "display_size",
+        "segment",
+    ]
+    if bottom_up:
+        categorical_columns += ['sku', 'reporterhq_id']
+    
+    for col in categorical_columns:
+        df[col] = df[col].astype("category")
+        df[col] = df[col].cat.remove_unused_categories()
+
+    # Drop columns
+    df.drop(columns=["specs"], inplace=True)
+    df = df.dropna(subset=["inventory_units"])
+    return df
+
+
+def preprocess_columns_product_level(df):
 
     # Format columns
     df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d", errors="coerce")
@@ -20,16 +50,17 @@ def preprocess_columns(df):
         "prod_category",
         "display_size",
         "segment",
-        "sku",
     ]
     for col in categorical_columns:
         df[col] = df[col].astype("category")
         df[col] = df[col].cat.remove_unused_categories()
-
+    
     # Drop columns
     df.drop(columns=["specs"], inplace=True)
     df = df.dropna(subset=["inventory_units"])
-    return df
+
+    # 
+    [x for x in df.columns if 'units' in x]
 
 
 def fill_in_missing_dates(df, group_col="sku", date_col="date", freq="W-SAT"):

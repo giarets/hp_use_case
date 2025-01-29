@@ -38,13 +38,13 @@ def select_last_n_weeks_from_df(df, n_weeks):
     return df.loc[time_mask]
 
 
-def predict_last_13_weeks(df, fc_model):
+def predict_last_13_weeks(df, fc_model, col_agg="sku"):
     df_last_13_weeks = select_last_n_weeks_from_df(df, n_weeks=13)
     X_test, y_test = df_last_13_weeks.drop(columns=["y"]), df_last_13_weeks["y"]
     y_preds = fc_model.predict(X=X_test)
     df_preds = pd.DataFrame(
         data={
-            "sku": X_test["sku"],
+            col_agg: X_test[col_agg],
             "y_pred": y_preds,
             # "y": y_test.values
         },
@@ -68,3 +68,34 @@ def aggregate_predictions(df):
         'y_pred': 'sum'            
     }).reset_index(drop=True).rename(columns={'date_temp': 'date'})
     return df_agg
+
+
+def aggregate_df(df):
+
+    df['date'] = pd.to_datetime(df['date'])
+
+    df_grouped = df.groupby(['date', 'product_number', 'reporterhq_id'], as_index=False).agg({
+        'id': 'first',
+        'year_week': 'first',
+        'prod_category': 'first',
+        'specs': 'first',
+        'display_size': 'first',
+        'segment': 'first',
+        'inventory_units': 'sum',
+        'sales_units': 'sum'
+    })
+
+    # Pivot table to create separate columns for each reporter_id
+    df_pivot = df_grouped.pivot_table(
+        index=['date', 'product_number'],
+        columns='reporterhq_id',
+        values=['inventory_units', 'sales_units'],
+        aggfunc='sum',
+        fill_value=0 
+    )
+
+    df_pivot.columns = [f"{metric}_{reporter}" for metric, reporter in df_pivot.columns]
+    df_pivot.reset_index(inplace=True)
+    df_totals = df.groupby(['date', 'product_number'], as_index=False)[['inventory_units', 'sales_units']].sum()
+    df_final = df_totals.merge(df_pivot, on=['date', 'product_number'])
+    return df_final

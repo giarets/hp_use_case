@@ -22,23 +22,23 @@ def features_time_related(df):
     return df
 
 
-def features_lag(df, col, lags=[13]):
+def features_lag(df, col, lags=[13], group_column='sku'):
 
     for lag in lags:
-        df[f"{col}_lag_{lag}"] = df.groupby("sku", observed=False)[col].shift(lag)
+        df[f"{col}_lag_{lag}"] = df.groupby(group_column, observed=False)[col].shift(lag)
 
     return df
 
 
-def features_rolling(df, col, window_sizes):
+def features_rolling(df, col, window_sizes, group_column='sku'):
     for window in window_sizes:
-        df[f"{col}_rolling_mean_{window}w"] = df.groupby("sku", observed=False)[
+        df[f"{col}_rolling_mean_{window}w"] = df.groupby(group_column, observed=False)[
             col
         ].transform(lambda x: x.shift(13).rolling(window, min_periods=1).mean())
-        df[f"{col}_rolling_std_{window}w"] = df.groupby("sku", observed=False)[
+        df[f"{col}_rolling_std_{window}w"] = df.groupby(group_column, observed=False)[
             col
         ].transform(lambda x: x.shift(13).rolling(window, min_periods=1).std())
-        df[f"{col}_rolling_sum_{window}w"] = df.groupby("sku", observed=False)[
+        df[f"{col}_rolling_sum_{window}w"] = df.groupby(group_column, observed=False)[
             col
         ].transform(lambda x: x.shift(13).rolling(window, min_periods=1).sum())
         # df[f'{col}_rolling_sum_{window}w'] = df.groupby('sku', observed=False)[col].transform(lambda x: x.shift(13).rolling(window, min_periods=1).min())

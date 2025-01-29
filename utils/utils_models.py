@@ -45,7 +45,7 @@ class AbstractForecastingModel(ABC):
             loaded_data = pickle.load(file)
             self.model = loaded_data["model"]
 
-    def cross_validate(self, df, n_splits=4, aggregate_by_id=False):
+    def cross_validate(self, df, n_splits=4, bottom_up=True):
         metrics = []
         predictions_list = []
 
@@ -83,7 +83,7 @@ class AbstractForecastingModel(ABC):
         average_rmse = np.mean(metrics)
         print(f"Average RMSE from cross-validation: {average_rmse:.4f}")
 
-        if aggregate_by_id:
+        if bottom_up:
             df_final_preds = pd.concat(predictions_list).reset_index(drop=True)
             df_final_preds = utils.aggregate_predictions(df_final_preds)
             score_agg = self.evaluate(df_final_preds['y_pred'], df_final_preds['y'])
