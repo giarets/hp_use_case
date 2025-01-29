@@ -2,46 +2,44 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def plot_real_vs_predicted(df, sku, full_history=False):
+def plot_real_vs_predicted(df, sku, pred_columns, vline_dates=None):
     """
-    Plot the comparison between real (actual) and predicted inventory values for a specific SKU.
+    Plot real vs multiple predicted inventory values for a specific SKU.
 
     Parameters:
     df (pandas.DataFrame): A DataFrame containing the data with at least the following columns:
                             - 'sku': The SKU identifier.
                             - 'date': The date of the record.
-                            - 'y_pred': Predicted values (if available).
+                            - Predicted columns: A list of column names containing predicted values (e.g., 'y_pred_lag', 'y_pred_rolling').
                             - 'inventory_units' or 'y': Actual inventory values or alternative actual column.
     sku (str): The SKU identifier for which the comparison should be plotted.
+    pred_columns (list of str): List of column names containing predicted values to plot.
     full_history (bool, optional): If set to `True`, the function plots the whole time series of
                                    'inventory_units' along with predicted values.
+    vline_dates (list, optional): A list of dates (as strings or datetime objects) where vertical lines should be added.
 
     Returns:
     None: The function directly displays a plot. It does not return a value.
-
-    Example:
-    plot_real_vs_predicted(df, sku="12_112518", full_history=True)
     """
 
     df_single_sku = df[df["sku"] == sku].set_index("date")
 
-    col_predictions = "y_pred"
-    col_real = "inventory_units" if full_history else "y"
+    col_real = "y"
 
     plt.figure(figsize=(12, 4))
 
-    # Plot predicted values ('y_pred')
-    plt.plot(
-        df_single_sku.index,
-        df_single_sku[col_predictions],
-        label="Predicted (y_pred)",
-        linestyle="--",
-        marker="o",
-        color="orange",
-        linewidth=1,
-    )
+    # Loop over each prediction column and plot it
+    for pred_col in pred_columns:
+        plt.plot(
+            df_single_sku.index,
+            df_single_sku[pred_col],
+            label=f"Predicted ({pred_col})",
+            linestyle="--",
+            marker="o",
+            linewidth=1,
+        )
 
-    # Plot actual values ('y' or 'inventory_units')
+    # Plot actual values
     plt.plot(
         df_single_sku.index,
         df_single_sku[col_real],
@@ -51,6 +49,17 @@ def plot_real_vs_predicted(df, sku, full_history=False):
         color="green",
         linewidth=1,
     )
+
+    # Add vertical lines if any
+    if vline_dates:
+        for vline_date in vline_dates:
+            plt.axvline(
+                x=vline_date,
+                color="red",
+                linestyle="--",
+                alpha=0.7,
+                label="Last available date" if vline_date == vline_dates[0] else "",
+            )
 
     plt.title(f"Actual vs Predicted for sku {sku}")
     plt.xlabel("Date")
@@ -73,6 +82,8 @@ def plot_time_series_split_with_dates(ts_splitter, df):
     """
     fig, ax = plt.subplots(figsize=(12, ts_splitter.n_splits + 2))
     colors = {"training": "blue", "testing": "orange"}
+
+    df = pd.Series(range(len(df.index.unique())), index=df.index.unique(), name="original_dates")
 
     df = df[~df.index.duplicated(keep="first")]
     dates = df.index

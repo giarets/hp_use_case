@@ -41,7 +41,7 @@ def select_last_n_weeks_from_df(df, n_weeks):
 def predict_last_13_weeks(df, fc_model):
     df_last_13_weeks = select_last_n_weeks_from_df(df, n_weeks=13)
     X_test, y_test = df_last_13_weeks.drop(columns=["y"]), df_last_13_weeks["y"]
-    y_preds = fc_model.model.predict(X=X_test)
+    y_preds = fc_model.predict(X=X_test)
     df_preds = pd.DataFrame(
         data={
             "sku": X_test["sku"],
