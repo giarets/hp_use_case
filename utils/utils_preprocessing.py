@@ -6,11 +6,13 @@ def preprocess_columns(df, bottom_up=True):
 
     if bottom_up:
         # Define sku = reporterhq_id + product_number
-        df["sku"] = df["reporterhq_id"].astype(str) + "_" + df["product_number"].astype(str)
+        df["sku"] = (
+            df["reporterhq_id"].astype(str) + "_" + df["product_number"].astype(str)
+        )
 
     # Format columns
     df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d", errors="coerce")
-    numeric_cols = [x for x in df.columns if 'units' in x]
+    numeric_cols = [x for x in df.columns if "units" in x]
     for col in numeric_cols:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
@@ -23,8 +25,8 @@ def preprocess_columns(df, bottom_up=True):
         "segment",
     ]
     if bottom_up:
-        categorical_columns += ['sku', 'reporterhq_id']
-    
+        categorical_columns += ["sku", "reporterhq_id"]
+
     for col in categorical_columns:
         df[col] = df[col].astype("category")
         df[col] = df[col].cat.remove_unused_categories()
@@ -54,13 +56,13 @@ def preprocess_columns_product_level(df):
     for col in categorical_columns:
         df[col] = df[col].astype("category")
         df[col] = df[col].cat.remove_unused_categories()
-    
+
     # Drop columns
     df.drop(columns=["specs"], inplace=True)
     df = df.dropna(subset=["inventory_units"])
 
-    # 
-    [x for x in df.columns if 'units' in x]
+    #
+    [x for x in df.columns if "units" in x]
 
 
 def fill_in_missing_dates(df, group_col="sku", date_col="date", freq="W-SAT"):
@@ -82,7 +84,11 @@ def fill_in_missing_dates(df, group_col="sku", date_col="date", freq="W-SAT"):
 
     df[date_col] = pd.to_datetime(df[date_col])
     original_dtype = df[group_col].dtype
-    df_dates_ranges = df.groupby(group_col, observed=False)[date_col].agg(["min", "max"]).reset_index()
+    df_dates_ranges = (
+        df.groupby(group_col, observed=False)[date_col]
+        .agg(["min", "max"])
+        .reset_index()
+    )
 
     df_complete = pd.DataFrame()
 
@@ -111,8 +117,8 @@ def fill_in_missing_dates(df, group_col="sku", date_col="date", freq="W-SAT"):
 
 
 def interpolate(group):
-    group = group.sort_values(by='date')
-    group = group.set_index('date')
-    group['sales_units'] = group['sales_units'].interpolate(method='time')
-    group['inventory_units'] = group['inventory_units'].interpolate(method='time')
+    group = group.sort_values(by="date")
+    group = group.set_index("date")
+    group["sales_units"] = group["sales_units"].interpolate(method="time")
+    group["inventory_units"] = group["inventory_units"].interpolate(method="time")
     return group.reset_index()

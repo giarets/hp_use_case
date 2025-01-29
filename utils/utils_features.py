@@ -3,6 +3,9 @@ import numpy as np
 
 
 def features_time_related(df):
+    """
+    Classical time related features
+    """
     df["day_of_month"] = df["date"].dt.day
     df["week_of_month"] = (df["date"].dt.day - 1) // 7 + 1  # Week within the month
     df["week_of_year"] = df["date"].dt.isocalendar().week  # ISO week number
@@ -22,15 +25,22 @@ def features_time_related(df):
     return df
 
 
-def features_lag(df, col, lags=[13], group_column='sku'):
-
+def features_lag(df, col, lags=[13], group_column="sku"):
+    """
+    Creates lagged features for a given column within groups in a pandas DataFrame.
+    """
     for lag in lags:
-        df[f"{col}_lag_{lag}"] = df.groupby(group_column, observed=False)[col].shift(lag)
+        df[f"{col}_lag_{lag}"] = df.groupby(group_column, observed=False)[col].shift(
+            lag
+        )
 
     return df
 
 
-def features_rolling(df, col, window_sizes, group_column='sku'):
+def features_rolling(df, col, window_sizes, group_column="sku"):
+    """
+    Creates rolling features for a given column within groups in a pandas DataFrame.
+    """
     for window in window_sizes:
         df[f"{col}_rolling_mean_{window}w"] = df.groupby(group_column, observed=False)[
             col
@@ -69,15 +79,11 @@ def create_periods_feature(df, coll_agg, date_column, target_col):
 
     # Group by the coll_agg and create a cumulative sum of the signal_above_zero mask
     # Start counting periods only when the signal_col is greater than 0
-    df["first_nonzero_signal"] = (
-        df.groupby(coll_agg)["signal_above_zero"].cumsum() > 0
-    )
+    df["first_nonzero_signal"] = df.groupby(coll_agg)["signal_above_zero"].cumsum() > 0
 
     # Count periods only where the signal has been greater than zero
     df["feature_periods"] = df.groupby(coll_agg).cumcount() + 1
-    df["feature_periods"] = df["feature_periods"].where(
-        df["first_nonzero_signal"], 0
-    )
+    df["feature_periods"] = df["feature_periods"].where(df["first_nonzero_signal"], 0)
 
     df["feature_periods"] = df["feature_periods"].astype("float64")
     df = df.reset_index(drop=True)

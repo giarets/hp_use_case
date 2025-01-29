@@ -70,14 +70,16 @@ class AbstractForecastingModel(ABC):
             score = self.evaluate(y_pred, y_test)
             metrics.append(score)
 
-            predictions_df = pd.DataFrame({
-                "date": test_data.index,
-                "id": test_data['id'],
-                "year_week": test_data['year_week'],
-                "product_number": test_data['product_number'],
-                "y_pred": y_pred,
-                "y": y_test
-            })
+            predictions_df = pd.DataFrame(
+                {
+                    "date": test_data.index,
+                    "id": test_data["id"],
+                    "year_week": test_data["year_week"],
+                    "product_number": test_data["product_number"],
+                    "y_pred": y_pred,
+                    "y": y_test,
+                }
+            )
             predictions_list.append(predictions_df)
 
         average_rmse = np.mean(metrics)
@@ -86,13 +88,17 @@ class AbstractForecastingModel(ABC):
         if bottom_up:
             df_final_preds = pd.concat(predictions_list).reset_index(drop=True)
             df_final_preds = utils.aggregate_predictions(df_final_preds)
-            score_agg = self.evaluate(df_final_preds['y_pred'], df_final_preds['y'])
+            score_agg = self.evaluate(df_final_preds["y_pred"], df_final_preds["y"])
             print(f"\nAverage RMSE after aggregating per id: {score_agg:.4f}")
 
         return average_rmse
-    
+
 
 class NaiveRollingMean(AbstractForecastingModel):
+    """
+    A naive forecasting model that predicts future values using the most recent rolling mean 
+    of inventory units based on a specified window size.
+    """
 
     def __init__(self, hyperparameters=None):
         super().__init__(hyperparameters)
@@ -100,9 +106,9 @@ class NaiveRollingMean(AbstractForecastingModel):
         self.column = self.initialize_model()
 
     def initialize_model(self):
-        if self.hyperparameters is None or 'window' not in self.hyperparameters:
+        if self.hyperparameters is None or "window" not in self.hyperparameters:
             raise ValueError("Hyperparameter 'window' is required but missing.")
-        self.window = self.hyperparameters['window']
+        self.window = self.hyperparameters["window"]
         return f"inventory_units_rolling_mean_{self.window}w"
 
     def train(self, X_train, y_train):
@@ -113,15 +119,15 @@ class NaiveRollingMean(AbstractForecastingModel):
             raise ValueError(f"{self.column} is missing from input data.")
 
         last_values_per_sku = (
-            X.sort_index()
-            .groupby("sku")[self.column]
-            .last()
-            .to_dict()
+            X.sort_index().groupby("sku")[self.column].last().to_dict()
         )
         return X["sku"].map(last_values_per_sku).values
-    
+
 
 class NaiveLag(AbstractForecastingModel):
+    """
+    A naive forecasting model that predicts future values using a specific lag value. 
+    """
 
     def __init__(self, hyperparameters=None):
         super().__init__(hyperparameters)
@@ -129,9 +135,9 @@ class NaiveLag(AbstractForecastingModel):
         self.column = self.initialize_model()
 
     def initialize_model(self):
-        if self.hyperparameters is None or 'lag' not in self.hyperparameters:
+        if self.hyperparameters is None or "lag" not in self.hyperparameters:
             raise ValueError("Hyperparameter 'lag' is required but missing.")
-        self.lag = self.hyperparameters['lag']
+        self.lag = self.hyperparameters["lag"]
         return f"inventory_units_lag_{self.lag}"
 
     def train(self, X_train, y_train):
@@ -142,14 +148,14 @@ class NaiveLag(AbstractForecastingModel):
             raise ValueError(f"{self.column} is missing from input data.")
 
         last_values_per_sku = (
-            X.sort_index()
-            .groupby("sku")[self.column]
-            .last()
-            .to_dict()
+            X.sort_index().groupby("sku")[self.column].last().to_dict()
         )
         return X["sku"].map(last_values_per_sku).values
-    
+
 
 class LightGBMForecastingModel(AbstractForecastingModel):
+    """
+    LightGBM model
+    """
     def initialize_model(self):
         return LGBMRegressor(**self.hyperparameters)

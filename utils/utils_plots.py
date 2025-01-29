@@ -1,8 +1,12 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 
-def plot_real_vs_predicted(df, single_ts, pred_columns, col_agg='sku', vline_dates=None):
+def plot_real_vs_predicted(
+    df, single_ts, pred_columns, col_agg="sku", vline_dates=None
+):
     """
     Plot real vs multiple predicted inventory values for a specific SKU.
 
@@ -82,7 +86,9 @@ def plot_time_series_split_with_dates(ts_splitter, df):
     fig, ax = plt.subplots(figsize=(12, ts_splitter.n_splits + 2))
     colors = {"training": "blue", "testing": "orange"}
 
-    df = pd.Series(range(len(df.index.unique())), index=df.index.unique(), name="original_dates")
+    df = pd.Series(
+        range(len(df.index.unique())), index=df.index.unique(), name="original_dates"
+    )
 
     df = df[~df.index.duplicated(keep="first")]
     dates = df.index
@@ -111,5 +117,47 @@ def plot_time_series_split_with_dates(ts_splitter, df):
     ax.set_yticklabels([f"Split {i+1}" for i in range(ts_splitter.n_splits)])
     plt.xticks(rotation=45)
     plt.figure(figsize=(14, 2))
+    plt.tight_layout()
+    plt.show()
+
+
+def categorical_histogram(df, cat_col, log_scale=False):
+    """
+    Seaborn multiple histograms for a given categorical column.
+    """
+
+    col_sales = "sales_units"
+    col_inventory = "inventory_units"
+
+    if log_scale:
+        df.loc[:, "sales_units_log"] = np.log1p(df["sales_units"])
+        df.loc[:, "inventory_units_log"] = np.log1p(df["inventory_units"])
+        col_sales = "sales_units_log"
+        col_inventory = "inventory_units_log"
+
+    g = sns.FacetGrid(df, col=cat_col, col_wrap=4, sharex=False, sharey=False, height=4)
+
+    for ax, (name, data) in zip(g.axes.flat, df.groupby(cat_col)):
+        sns.histplot(
+            data[col_sales],
+            ax=ax,
+            kde=False,
+            color="blue",
+            alpha=0.3,
+            label="sales_units",
+            bins=25,
+        )
+        sns.histplot(
+            data[col_inventory],
+            ax=ax,
+            kde=False,
+            color="orange",
+            alpha=0.3,
+            label="inventory_units",
+            bins=40,
+        )
+        ax.legend()
+
+    g.set_titles("Segment: {col_name}")
     plt.tight_layout()
     plt.show()
