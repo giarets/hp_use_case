@@ -51,3 +51,20 @@ def predict_last_13_weeks(df, fc_model):
         index=X_test.index,
     )
     return df_preds
+
+
+def aggregate_predictions(df):
+
+    df_agg = df[['date', 'id', 'year_week', 'product_number', 'y', 'y_pred']]
+    df_agg = df_agg.copy()
+    df_agg.loc[:, 'date_temp'] = df_agg['date']
+        
+    df_agg = df_agg.groupby(['product_number'], observed=False).resample('W', on='date').agg({
+        'id': 'first',               
+        'date_temp': 'first',
+        'year_week': 'first',         
+        'product_number': 'first', 
+        'y': 'sum',                   
+        'y_pred': 'sum'            
+    }).reset_index(drop=True).rename(columns={'date_temp': 'date'})
+    return df_agg

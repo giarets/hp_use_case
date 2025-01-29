@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def plot_real_vs_predicted(df, sku, pred_columns, vline_dates=None):
+def plot_real_vs_predicted(df, single_ts, pred_columns, col_agg='sku', vline_dates=None):
     """
     Plot real vs multiple predicted inventory values for a specific SKU.
 
@@ -22,8 +22,7 @@ def plot_real_vs_predicted(df, sku, pred_columns, vline_dates=None):
     None: The function directly displays a plot. It does not return a value.
     """
 
-    df_single_sku = df[df["sku"] == sku].set_index("date")
-
+    df_single_sku = df[df[col_agg] == single_ts].set_index("date")
     col_real = "y"
 
     plt.figure(figsize=(12, 4))
@@ -61,7 +60,7 @@ def plot_real_vs_predicted(df, sku, pred_columns, vline_dates=None):
                 label="Last available date" if vline_date == vline_dates[0] else "",
             )
 
-    plt.title(f"Actual vs Predicted for sku {sku}")
+    plt.title(f"Actual vs Predicted for {col_agg} {single_ts}")
     plt.xlabel("Date")
     plt.ylabel("Inventory Units")
 
