@@ -58,8 +58,10 @@ def aggregate_predictions(df):
     df_agg = df[['date', 'id', 'year_week', 'product_number', 'y', 'y_pred']]
     df_agg = df_agg.copy()
     df_agg.loc[:, 'date_temp'] = df_agg['date']
+
+    df_agg = df_agg.set_index('date')
         
-    df_agg = df_agg.groupby(['product_number'], observed=False).resample('W', on='date').agg({
+    df_agg = df_agg.groupby(['product_number'], observed=False).resample('W').agg({
         'id': 'first',               
         'date_temp': 'first',
         'year_week': 'first',         

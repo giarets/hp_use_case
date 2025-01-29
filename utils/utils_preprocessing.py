@@ -82,7 +82,7 @@ def fill_in_missing_dates(df, group_col="sku", date_col="date", freq="W-SAT"):
 
     df[date_col] = pd.to_datetime(df[date_col])
     original_dtype = df[group_col].dtype
-    df_dates_ranges = df.groupby(group_col)[date_col].agg(["min", "max"]).reset_index()
+    df_dates_ranges = df.groupby(group_col, observed=False)[date_col].agg(["min", "max"]).reset_index()
 
     df_complete = pd.DataFrame()
 
@@ -110,12 +110,9 @@ def fill_in_missing_dates(df, group_col="sku", date_col="date", freq="W-SAT"):
     return df_complete
 
 
-# # Interpolation and fill-in function
-# def interpolate_sku(group):
-#     group = group.sort_values(by='date')
-#     group = group.set_index('date')
-#     group['sales_units'] = group['sales_units'].interpolate(method='time')
-#     group['inventory_units'] = group['inventory_units'].interpolate(method='time')
-#     return group.reset_index()
-
-# df_kaggle = df_kaggle.groupby('sku', group_keys=False).apply(interpolate_sku)
+def interpolate(group):
+    group = group.sort_values(by='date')
+    group = group.set_index('date')
+    group['sales_units'] = group['sales_units'].interpolate(method='time')
+    group['inventory_units'] = group['inventory_units'].interpolate(method='time')
+    return group.reset_index()
