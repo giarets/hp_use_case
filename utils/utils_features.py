@@ -91,49 +91,50 @@ def create_periods_feature(df, coll_agg, date_column, target_col):
     return df
 
 
-def put_na_on_future_lags(df, df_key='product_number', ts_name='inventory_units'):
+def put_na_on_future_lags(df, df_key="product_number", ts_name="inventory_units"):
 
     df = df.copy().reset_index()
     product_numbers = df[df_key].unique()
-    lag_cols = [x for x in df.columns if ('lag' in x) and (ts_name in x)]
+    lag_cols = [x for x in df.columns if ("lag" in x) and (ts_name in x)]
 
     for product in product_numbers:
-        
+
         product_df = df[df[df_key] == product]
         last_13_rows = product_df.tail(13)
-        
+
         # Apply put_na_diagonally to the lagged columns
         df.loc[last_13_rows.index, lag_cols] = put_na_diagonally(last_13_rows[lag_cols])
-    return df.set_index('date')
+    return df.set_index("date")
+
 
 def put_na_diagonally(df):
 
-    m,n = df.shape
-    df[:] = np.where(np.arange(m)[:,None] > np.arange(n),np.nan,df)
+    m, n = df.shape
+    df[:] = np.where(np.arange(m)[:, None] > np.arange(n), np.nan, df)
     return df
 
 
 def apply_random_na(df, columns, start_prob=0.5, end_prob=0.1):
     """
-    Apply randomly missing (NA) values to specific columns in a dataframe with 
+    Apply randomly missing (NA) values to specific columns in a dataframe with
     linearly decreasing frequency.
-    
+
     Parameters:
     - df: pandas DataFrame to apply missing values to
     - columns: list of column names where NA values should be applied
     - start_prob: starting probability for the first column (default 0.5)
     - end_prob: ending probability for the last column (default 0.1)
-    
+
     Returns:
     - DataFrame with randomly inserted NA values
     """
-    
+
     # Create linearly decreasing probability array for the specified columns
     probabilities = np.linspace(start_prob, end_prob, num=len(columns))
-    
+
     # Loop over the selected columns and apply the missing values
     for i, col in enumerate(columns):
         missing_indices = np.random.rand(len(df)) < probabilities[i]
         df.loc[missing_indices, col] = np.nan
-    
+
     return df

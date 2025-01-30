@@ -52,17 +52,19 @@ class AbstractForecastingModel(ABC):
         """
         Perform time-series cross-validation using TimeSeriesSplit and return average RMSE.
         If the approach is bottom-up it also outputs the aggregated RMSE.
-    
+
         Parameters:
         -----------
-        df : The input dataframe containing time-series data, including target variable ('y'), 
+        df : The input dataframe containing time-series data, including target variable ('y'),
              features, and time-related columns (such as 'product_number', 'id', 'year_week', etc.).
-        n_splits : The number of splits for cross-validation. It controls the number of train-test 
+        n_splits : The number of splits for cross-validation. It controls the number of train-test
                    splits to perform.
-        extended_features : If True, additional preprocessing is applied to future lags of the features 
-                            (lag1 to lag12), setting values as NA progressively from forecast day 1 
+        extended_features : If True, additional preprocessing is applied to future lags of the features
+                            (lag1 to lag12), setting values as NA progressively from forecast day 1
                             to forecast day 13.
-        
+        random_na: If True, randomly set NA values in the inventory lagged columns with 
+                   decreasing probabilities
+
         Returns:
         --------
         float
@@ -86,28 +88,36 @@ class AbstractForecastingModel(ABC):
             # If we're using all lags, we need to set NA values in lag1 to lag12
             # This has to be done progressively from forecast day 1 to forecast day 13
             if extended_features:
-                test_data = utils_features.put_na_on_future_lags(df=test_data, df_key='product_number', ts_name='inventory_units')
+                test_data = utils_features.put_na_on_future_lags(
+                    df=test_data, df_key="product_number", ts_name="inventory_units"
+                )
 
                 if random_na:
-                    cols = ['inventory_units_lag_1',
-                            'inventory_units_lag_2',
-                            'inventory_units_lag_3',
-                            'inventory_units_lag_4',
-                            'inventory_units_lag_5',
-                            'inventory_units_lag_6',
-                            'inventory_units_lag_7',
-                            'inventory_units_lag_8',
-                            'inventory_units_lag_9',
-                            'inventory_units_lag_10',
-                            'inventory_units_lag_11',
-                            'inventory_units_lag_12']
+                    cols = [
+                        "inventory_units_lag_1",
+                        "inventory_units_lag_2",
+                        "inventory_units_lag_3",
+                        "inventory_units_lag_4",
+                        "inventory_units_lag_5",
+                        "inventory_units_lag_6",
+                        "inventory_units_lag_7",
+                        "inventory_units_lag_8",
+                        "inventory_units_lag_9",
+                        "inventory_units_lag_10",
+                        "inventory_units_lag_11",
+                        "inventory_units_lag_12",
+                    ]
                     train_data = utils_features.apply_random_na(train_data, cols)
 
             X_train, y_train = train_data.drop(columns=["y"]), train_data["y"]
             X_test, y_test = test_data.drop(columns=["y"]), test_data["y"]
 
-            print(f"Train [{X_train.index.min().date()} - {X_train.index.max().date()}]")
-            print(f"Predict [{X_test.index.min().date()} - {X_test.index.max().date()}]")
+            print(
+                f"Train [{X_train.index.min().date()} - {X_train.index.max().date()}]"
+            )
+            print(
+                f"Predict [{X_test.index.min().date()} - {X_test.index.max().date()}]"
+            )
 
             self.train(X_train, y_train)
             y_pred = self.predict(X_test)
@@ -137,12 +147,11 @@ class AbstractForecastingModel(ABC):
             print(f"\nAverage RMSE after aggregating per id: {score_agg:.4f}")
 
         return average_rmse
-    
 
 
 class NaiveRollingMean(AbstractForecastingModel):
     """
-    A naive forecasting model that predicts future values using the most recent rolling mean 
+    A naive forecasting model that predicts future values using the most recent rolling mean
     of inventory units based on a specified window size.
     """
 
@@ -150,7 +159,7 @@ class NaiveRollingMean(AbstractForecastingModel):
         super().__init__(*args, **kwargs)
         self.window = None
         self.column = self.initialize_model()
-        self.col_group = 'sku' if self.bottom_up==True else 'product_number'
+        self.col_group = "sku" if self.bottom_up == True else "product_number"
 
     def initialize_model(self):
         if self.hyperparameters is None or "window" not in self.hyperparameters:
@@ -166,21 +175,24 @@ class NaiveRollingMean(AbstractForecastingModel):
             raise ValueError(f"{self.column} is missing from input data.")
 
         last_values_per_sku = (
-            X.sort_index().groupby(self.col_group, observed=False)[self.column].last().to_dict()
+            X.sort_index()
+            .groupby(self.col_group, observed=False)[self.column]
+            .last()
+            .to_dict()
         )
         return X[self.col_group].map(last_values_per_sku).fillna(0).values
 
 
 class NaiveLag(AbstractForecastingModel):
     """
-    A naive forecasting model that predicts future values using a specific lag value. 
+    A naive forecasting model that predicts future values using a specific lag value.
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.lag = None
         self.column = self.initialize_model()
-        self.col_group = 'sku' if self.bottom_up==True else 'product_number'
+        self.col_group = "sku" if self.bottom_up == True else "product_number"
 
     def initialize_model(self):
         if self.hyperparameters is None or "lag" not in self.hyperparameters:
@@ -205,9 +217,15 @@ class LightGBMForecastingModel(AbstractForecastingModel):
     """
     LightGBM model
     """
+
     def initialize_model(self):
         return LGBMRegressor(**self.hyperparameters)
-    
-    def plot_feature_importance(self, importance_type='split'):
-        lgb.plot_importance(self.model, importance_type=importance_type, max_num_features=15, figsize=(10, 4))
+
+    def plot_feature_importance(self, importance_type="split"):
+        lgb.plot_importance(
+            self.model,
+            importance_type=importance_type,
+            max_num_features=15,
+            figsize=(10, 4),
+        )
         plt.show()

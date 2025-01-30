@@ -53,7 +53,7 @@ def predict_last_13_weeks(df, fc_model, col_agg="sku"):
     return df_preds
 
 
-def aggregate_predictions(df, cols=['y_pred']):
+def aggregate_predictions(df, cols=["y_pred"]):
 
     df_agg = df[["date", "id", "year_week", "product_number", "y"] + cols]
     df_agg = df_agg.copy()
@@ -117,12 +117,19 @@ def aggregate_df(df):
     df_final = df_totals.merge(df_pivot, on=["date", "product_number"])
 
     df_final = df_final.merge(
-        df[[
-            'id', 'date', 'year_week', 'product_number', 
-            'prod_category', 'specs', 
-            'display_size', 'segment'
-            ]],
-        on=['date', 'product_number'],
-        how='left'
+        df[
+            [
+                "id",
+                "date",
+                "year_week",
+                "product_number",
+                "prod_category",
+                "specs",
+                "display_size",
+                "segment",
+            ]
+        ],
+        on=["date", "product_number"],
+        how="left",
     )
     return df_final
