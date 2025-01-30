@@ -53,27 +53,28 @@ def predict_last_13_weeks(df, fc_model, col_agg="sku"):
     return df_preds
 
 
-def aggregate_predictions(df):
+def aggregate_predictions(df, cols=['y_pred']):
 
-    df_agg = df[["date", "id", "year_week", "product_number", "y", "y_pred"]]
+    df_agg = df[["date", "id", "year_week", "product_number", "y"] + cols]
     df_agg = df_agg.copy()
     df_agg.loc[:, "date_temp"] = df_agg["date"]
 
     df_agg = df_agg.set_index("date")
 
+    agg_dict = {
+    "id": "first",
+    "date_temp": "first",
+    "year_week": "first",
+    "product_number": "first",
+    "y": "sum",
+    }
+
+    agg_dict.update({col: "sum" for col in cols})
+
     df_agg = (
         df_agg.groupby(["product_number"], observed=False)
         .resample("W")
-        .agg(
-            {
-                "id": "first",
-                "date_temp": "first",
-                "year_week": "first",
-                "product_number": "first",
-                "y": "sum",
-                "y_pred": "sum",
-            }
-        )
+        .agg(agg_dict)
         .reset_index(drop=True)
         .rename(columns={"date_temp": "date"})
     )
