@@ -92,6 +92,15 @@ def create_periods_feature(df, coll_agg, date_column, target_col):
 
 
 def put_na_on_future_lags(df, df_key="product_number", ts_name="inventory_units"):
+    """
+    Selects all lagged columns associated with the time series ts_name aggregated
+    at the df_key level.
+    Then introduces NA values diagonally on those columns to mimic the inference phase:
+    - inference day 1: no NA values
+    - inference day 1: only lag1 is NA
+    ...
+    - inference day 13: lag1 to lag12 are NA
+    """
 
     df = df.copy().reset_index()
     product_numbers = df[df_key].unique()
@@ -108,7 +117,9 @@ def put_na_on_future_lags(df, df_key="product_number", ts_name="inventory_units"
 
 
 def put_na_diagonally(df):
-
+    """
+    Puts NA values in the bottom-right triangle of a matrix.
+    """
     m, n = df.shape
     df[:] = np.where(np.arange(m)[:, None] > np.arange(n), np.nan, df)
     return df

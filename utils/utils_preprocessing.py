@@ -40,6 +40,10 @@ def load_and_preprocess(file_path, bottom_up=True, group_col="sku"):
 
 
 def preprocess_columns(df, bottom_up=True):
+    """
+    Different preprocessing depending if the approach is
+    bottom-up or not.
+    """
 
     if bottom_up:
         # Define sku = reporterhq_id + product_number
@@ -104,8 +108,9 @@ def preprocess_columns_product_level(df):
 
 def fill_in_missing_dates(df, group_col="sku", date_col="date", freq="W-SAT"):
     """
-    Ensure that each group has all dates with a specified frequency from its min to its max date.
-    Missing rows will be forward-filled except for sales_units and inventory_units which will have NaN values.
+    Ensure that each group has all dates with a specified frequency from its 
+    min to its max date. Missing rows will be forward-filled except for sales_units 
+    and inventory_units which will have NaN values.
 
     Parameters:
     df (pd.DataFrame): Input DataFrame.
@@ -154,6 +159,7 @@ def fill_in_missing_dates(df, group_col="sku", date_col="date", freq="W-SAT"):
 
 
 def interpolate(group):
+    
     group = group.sort_values(by="date")
     group = group.set_index("date")
     group["sales_units"] = group["sales_units"].interpolate(method="time")

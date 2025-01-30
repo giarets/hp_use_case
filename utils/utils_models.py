@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import lightgbm as lgb
 import utils.utils as utils
 import utils.utils_features as utils_features
+import utils.constants as constants
 from sklearn.model_selection import TimeSeriesSplit
 from lightgbm import LGBMRegressor
 from sklearn.metrics import mean_squared_error
@@ -62,7 +63,7 @@ class AbstractForecastingModel(ABC):
         extended_features : If True, additional preprocessing is applied to future lags of the features
                             (lag1 to lag12), setting values as NA progressively from forecast day 1
                             to forecast day 13.
-        random_na: If True, randomly set NA values in the inventory lagged columns with 
+        random_na: If True, randomly set NA values in the inventory lagged columns with
                    decreasing probabilities
 
         Returns:
@@ -91,23 +92,11 @@ class AbstractForecastingModel(ABC):
                 test_data = utils_features.put_na_on_future_lags(
                     df=test_data, df_key="product_number", ts_name="inventory_units"
                 )
-
+                # Introduces random NA in the inventory lagged columns
                 if random_na:
-                    cols = [
-                        "inventory_units_lag_1",
-                        "inventory_units_lag_2",
-                        "inventory_units_lag_3",
-                        "inventory_units_lag_4",
-                        "inventory_units_lag_5",
-                        "inventory_units_lag_6",
-                        "inventory_units_lag_7",
-                        "inventory_units_lag_8",
-                        "inventory_units_lag_9",
-                        "inventory_units_lag_10",
-                        "inventory_units_lag_11",
-                        "inventory_units_lag_12",
-                    ]
-                    train_data = utils_features.apply_random_na(train_data, cols)
+                    train_data = utils_features.apply_random_na(
+                        train_data, constants.cols_inventory_lagged
+                    )
 
             X_train, y_train = train_data.drop(columns=["y"]), train_data["y"]
             X_test, y_test = test_data.drop(columns=["y"]), test_data["y"]

@@ -3,6 +3,9 @@ import numpy as np
 
 
 def looks_for_missing_dates(df, freq="7D"):
+    """
+    Prints missing dates in the dataset
+    """
 
     for id_, group in df.set_index("date").groupby("sku"):
         expected_dates = pd.date_range(
@@ -16,6 +19,10 @@ def looks_for_missing_dates(df, freq="7D"):
 
 
 def train_test_split(df, forecasting_horizon=13, target_col="y"):
+    """
+    Splits into training and testing set selecting last weeks from 
+    the forecasting horizon.
+    """
 
     if "date" in df.columns:
         df = df.set_index("date")
@@ -39,6 +46,17 @@ def select_last_n_weeks_from_df(df, n_weeks):
 
 
 def predict_last_13_weeks(df, fc_model, col_agg="sku"):
+    """
+    Predicts values for the last 13 weeks using a given forecasting model.
+
+    Parameters:
+    - df (pd.DataFrame): The input DataFrame containing historical data.
+    - fc_model: The forecasting model that implements a `.predict()` method.
+    - col_agg (str, optional): The column used for aggregation (default is "sku").
+
+    Returns:
+    - pd.DataFrame: A DataFrame containing the predictions for the last 13 weeks.
+    """
     df_last_13_weeks = select_last_n_weeks_from_df(df, n_weeks=13)
     X_test, y_test = df_last_13_weeks.drop(columns=["y"]), df_last_13_weeks["y"]
     y_preds = fc_model.predict(X=X_test)
@@ -54,6 +72,9 @@ def predict_last_13_weeks(df, fc_model, col_agg="sku"):
 
 
 def aggregate_predictions(df, cols=["y_pred"]):
+    """
+    Aggregates the prediction dataframe at the product level.
+    """
 
     df_agg = df[["date", "id", "year_week", "product_number", "y"] + cols]
     df_agg = df_agg.copy()
@@ -82,6 +103,11 @@ def aggregate_predictions(df, cols=["y_pred"]):
 
 
 def aggregate_df(df):
+    """
+    Aggregates the training dataframe at the product level.
+    While doing so defines new columns to represent inventory/sales
+    per reporterhq_id.
+    """
 
     df["date"] = pd.to_datetime(df["date"])
 
