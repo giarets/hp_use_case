@@ -11,8 +11,9 @@ from sklearn.metrics import mean_squared_error
 class AbstractForecastingModel(ABC):
     """An abstract base class for time-series forecasting models."""
 
-    def __init__(self, hyperparameters=None):
+    def __init__(self, hyperparameters=None, bottom_up=True):
         self.hyperparameters = hyperparameters if hyperparameters is not None else {}
+        self.bottom_up = bottom_up
         self.model = None
         self.model = self.initialize_model()
 
@@ -34,7 +35,6 @@ class AbstractForecastingModel(ABC):
     def save_model(self, filename):
         model_and_metadata = {
             "model": self.model,
-            "features": self.model.feature_name_,
             "hyperparameters": self.hyperparameters,
         }
         with open(filename, "wb") as file:
@@ -44,8 +44,9 @@ class AbstractForecastingModel(ABC):
         with open(filename, "rb") as file:
             loaded_data = pickle.load(file)
             self.model = loaded_data["model"]
+            self.hyperparameters = loaded_data["hyperparameters"]
 
-    def cross_validate(self, df, n_splits=4, bottom_up=True):
+    def cross_validate(self, df, n_splits=4):
         metrics = []
         predictions_list = []
 
@@ -85,7 +86,7 @@ class AbstractForecastingModel(ABC):
         average_rmse = np.mean(metrics)
         print(f"Average RMSE from cross-validation: {average_rmse:.4f}")
 
-        if bottom_up:
+        if self.bottom_up:
             df_final_preds = pd.concat(predictions_list).reset_index(drop=True)
             df_final_preds = utils.aggregate_predictions(df_final_preds)
             score_agg = self.evaluate(df_final_preds["y_pred"], df_final_preds["y"])
@@ -100,10 +101,11 @@ class NaiveRollingMean(AbstractForecastingModel):
     of inventory units based on a specified window size.
     """
 
-    def __init__(self, hyperparameters=None):
-        super().__init__(hyperparameters)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.window = None
         self.column = self.initialize_model()
+        self.col_group = 'sku' if self.bottom_up==True else 'product_number'
 
     def initialize_model(self):
         if self.hyperparameters is None or "window" not in self.hyperparameters:
@@ -119,9 +121,9 @@ class NaiveRollingMean(AbstractForecastingModel):
             raise ValueError(f"{self.column} is missing from input data.")
 
         last_values_per_sku = (
-            X.sort_index().groupby("sku")[self.column].last().to_dict()
+            X.sort_index().groupby(self.col_group, observed=False)[self.column].last().to_dict()
         )
-        return X["sku"].map(last_values_per_sku).values
+        return X[self.col_group].map(last_values_per_sku).fillna(0).values
 
 
 class NaiveLag(AbstractForecastingModel):
@@ -129,10 +131,11 @@ class NaiveLag(AbstractForecastingModel):
     A naive forecasting model that predicts future values using a specific lag value. 
     """
 
-    def __init__(self, hyperparameters=None):
-        super().__init__(hyperparameters)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.lag = None
         self.column = self.initialize_model()
+        self.col_group = 'sku' if self.bottom_up==True else 'product_number'
 
     def initialize_model(self):
         if self.hyperparameters is None or "lag" not in self.hyperparameters:
@@ -148,9 +151,9 @@ class NaiveLag(AbstractForecastingModel):
             raise ValueError(f"{self.column} is missing from input data.")
 
         last_values_per_sku = (
-            X.sort_index().groupby("sku")[self.column].last().to_dict()
+            X.sort_index().groupby(self.col_group)[self.column].last().to_dict()
         )
-        return X["sku"].map(last_values_per_sku).values
+        return X[self.col_group].map(last_values_per_sku).fillna(0).values
 
 
 class LightGBMForecastingModel(AbstractForecastingModel):

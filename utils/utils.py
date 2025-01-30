@@ -62,11 +62,11 @@ def aggregate_predictions(df, cols=['y_pred']):
     df_agg = df_agg.set_index("date")
 
     agg_dict = {
-    "id": "first",
-    "date_temp": "first",
-    "year_week": "first",
-    "product_number": "first",
-    "y": "sum",
+        "id": "first",
+        "date_temp": "first",
+        "year_week": "first",
+        "product_number": "first",
+        "y": "sum",
     }
 
     agg_dict.update({col: "sum" for col in cols})
@@ -115,4 +115,14 @@ def aggregate_df(df):
         ["inventory_units", "sales_units"]
     ].sum()
     df_final = df_totals.merge(df_pivot, on=["date", "product_number"])
+
+    df_final = df_final.merge(
+        df[[
+            'id', 'date', 'year_week', 'product_number', 
+            'reporterhq_id', 'prod_category', 'specs', 
+            'display_size', 'segment'
+            ]],
+        on=['date', 'product_number'],
+        how='left'
+    )
     return df_final
