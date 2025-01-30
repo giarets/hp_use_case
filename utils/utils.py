@@ -119,7 +119,7 @@ def aggregate_df(df):
     df_final = df_final.merge(
         df[[
             'id', 'date', 'year_week', 'product_number', 
-            'reporterhq_id', 'prod_category', 'specs', 
+            'prod_category', 'specs', 
             'display_size', 'segment'
             ]],
         on=['date', 'product_number'],

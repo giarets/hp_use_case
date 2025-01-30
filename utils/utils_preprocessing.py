@@ -3,15 +3,15 @@ import utils.utils_preprocessing as utils_preprocessing
 import utils.utils_features as utils_features
 
 
-def load_and_preprocess(file_path, bottom_up=True):
+def load_and_preprocess(file_path, bottom_up=True, group_col='sku'):
     """
     Load a CSV file, preprocess its columns, fill in missing dates, interpolate 
     missing values, generate model features and return the processed DataFrame.
     """
     df_kaggle = (
         pd.read_csv(file_path)
-        .pipe(utils_preprocessing.preprocess_columns)
-        #.pipe(utils_preprocessing.fill_in_missing_dates)
+        .pipe(utils_preprocessing.preprocess_columns, bottom_up=bottom_up)
+        .pipe(utils_preprocessing.fill_in_missing_dates, group_col=group_col)
         .pipe(lambda df: df.groupby('sku', group_keys=False, observed=False).apply(utils_preprocessing.interpolate))
         .pipe(utils_features.features_time_related)
         .pipe(utils_features.features_lag, col='inventory_units', lags=[13, 14, 15])

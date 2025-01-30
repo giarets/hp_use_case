@@ -56,7 +56,6 @@ def features_rolling(df, col, window_sizes, group_column="sku"):
     return df
 
 
-# copied
 def create_periods_feature(df, coll_agg, date_column, target_col):
     """
     Create a new feature 'feature_periods' that counts the number of weeks since
@@ -89,4 +88,26 @@ def create_periods_feature(df, coll_agg, date_column, target_col):
     df = df.reset_index(drop=True)
     df = df.drop(columns=["signal_above_zero", "first_nonzero_signal"])
 
+    return df
+
+
+def put_na_on_future_lags(df, df_key='product_number', ts_name='inventory_units'):
+
+    df = df.copy().reset_index()
+    product_numbers = df[df_key].unique()
+    lag_cols = [x for x in df.columns if ('lag' in x) and (ts_name in x)]
+
+    for product in product_numbers:
+        
+        product_df = df[df[df_key] == product]
+        last_13_rows = product_df.tail(13)
+        
+        # Apply put_na_diagonally to the lagged columns
+        df.loc[last_13_rows.index, lag_cols] = put_na_diagonally(last_13_rows[lag_cols])
+    return df
+
+def put_na_diagonally(df):
+
+    m,n = df.shape
+    df[:] = np.where(np.arange(m)[:,None] > np.arange(n),np.nan,df)
     return df

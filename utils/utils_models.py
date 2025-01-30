@@ -49,8 +49,8 @@ class AbstractForecastingModel(ABC):
     def cross_validate(self, df, n_splits=4):
         metrics = []
         predictions_list = []
-
         unique_dates = pd.Series(df.index.unique())
+
         tss = TimeSeriesSplit(n_splits, test_size=13)
 
         for train_idx, test_idx in tss.split(unique_dates):
@@ -64,6 +64,9 @@ class AbstractForecastingModel(ABC):
 
             X_train, y_train = train_data.drop(columns=["y"]), train_data["y"]
             X_test, y_test = test_data.drop(columns=["y"]), test_data["y"]
+
+            print(f"Train [{X_train.index.min().date()} - {X_train.index.max().date()}]")
+            print(f"Predict [{X_test.index.min().date()} - {X_test.index.max().date()}]")
 
             self.train(X_train, y_train)
             y_pred = self.predict(X_test)
